@@ -26,6 +26,7 @@ func TestPrepareOCIHeaders_ContentLengthHandling(t *testing.T) {
 		wantPresent  bool
 	}{
 		{"blob get 200 keeps", http.MethodGet, "/v2/ns/repo/blobs/sha256:abc", http.StatusOK, true},
+		{"blob get 206 keeps", http.MethodGet, "/v2/ns/repo/blobs/sha256:abc", http.StatusPartialContent, true},
 		{"blob get 404 removes", http.MethodGet, "/v2/ns/repo/blobs/sha256:abc", http.StatusNotFound, false},
 		{"non-blob get removes", http.MethodGet, "/v2/ns/repo/manifests/latest", http.StatusOK, false},
 		{"head keeps", http.MethodHead, "/v2/ns/repo/manifests/latest", http.StatusOK, true},

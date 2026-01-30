@@ -151,7 +151,7 @@ func (h *Handler) prepareOCIHeaders(r *http.Request, resp *proxy.Response, backe
 	// For other requests with bodies, remove Content-Length to use chunked encoding
 	if r.Method != http.MethodHead {
 		isBlobGet := r.Method == http.MethodGet &&
-			resp.StatusCode == http.StatusOK &&
+			(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent) &&
 			strings.HasPrefix(r.URL.Path, "/v2/") &&
 			strings.Contains(r.URL.Path, "/blobs/")
 		if !isBlobGet {

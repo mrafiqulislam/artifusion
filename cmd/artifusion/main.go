@@ -398,10 +398,19 @@ func shouldSkipRequestTimeout(r *http.Request) bool {
 	if r.Method != http.MethodHead && r.Method != http.MethodGet {
 		return false
 	}
-	if !strings.HasPrefix(r.URL.Path, "/v2/") {
+	return isOCIBlobPath(r.URL.Path)
+}
+
+func isOCIBlobPath(path string) bool {
+	if !strings.HasPrefix(path, "/v2/") {
 		return false
 	}
-	return strings.Contains(r.URL.Path, "/blobs/")
+	// Expect /v2/<name>/blobs/<digest> (name may include slashes)
+	parts := strings.Split(path, "/")
+	if len(parts) < 5 { // ["", "v2", <name...>, "blobs", <digest>]
+		return false
+	}
+	return parts[len(parts)-2] == "blobs" && parts[len(parts)-1] != ""
 }
 
 // getEnvOrDefault returns the value of an environment variable or a default value if not set
