@@ -2,6 +2,7 @@ package oci
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mainuli/artifusion/internal/config"
@@ -146,9 +147,16 @@ func (h *Handler) prepareOCIHeaders(r *http.Request, resp *proxy.Response, backe
 	}
 
 	// For HEAD requests, keep Content-Length header (required by Docker client)
+	// For blob GETs, keep Content-Length when present (body is unmodified)
 	// For other requests with bodies, remove Content-Length to use chunked encoding
 	if r.Method != http.MethodHead {
-		resp.Headers.Del("Content-Length")
+		isBlobGet := r.Method == http.MethodGet &&
+			resp.StatusCode == http.StatusOK &&
+			strings.HasPrefix(r.URL.Path, "/v2/") &&
+			strings.Contains(r.URL.Path, "/blobs/")
+		if !isBlobGet {
+			resp.Headers.Del("Content-Length")
+		}
 	}
 
 	// Determine public URL for URL rewriting
