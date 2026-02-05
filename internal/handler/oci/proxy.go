@@ -2,7 +2,6 @@ package oci
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/mainuli/artifusion/internal/config"
@@ -152,8 +151,7 @@ func (h *Handler) prepareOCIHeaders(r *http.Request, resp *proxy.Response, backe
 	if r.Method != http.MethodHead {
 		isBlobGet := r.Method == http.MethodGet &&
 			(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent) &&
-			strings.HasPrefix(r.URL.Path, "/v2/") &&
-			strings.Contains(r.URL.Path, "/blobs/")
+			IsOCIBlobPath(r.URL.Path)
 		if !isBlobGet {
 			resp.Headers.Del("Content-Length")
 		}

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -398,19 +397,7 @@ func shouldSkipRequestTimeout(r *http.Request) bool {
 	if r.Method != http.MethodHead && r.Method != http.MethodGet {
 		return false
 	}
-	return isOCIBlobPath(r.URL.Path)
-}
-
-func isOCIBlobPath(path string) bool {
-	if !strings.HasPrefix(path, "/v2/") {
-		return false
-	}
-	// Expect /v2/<name>/blobs/<digest> (name may include slashes)
-	parts := strings.Split(path, "/")
-	if len(parts) < 5 { // ["", "v2", <name...>, "blobs", <digest>]
-		return false
-	}
-	return parts[len(parts)-2] == "blobs" && parts[len(parts)-1] != ""
+	return oci.IsOCIBlobPath(r.URL.Path)
 }
 
 // getEnvOrDefault returns the value of an environment variable or a default value if not set

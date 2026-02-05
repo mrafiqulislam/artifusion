@@ -19,15 +19,17 @@ func TestPrepareOCIHeaders_ContentLengthHandling(t *testing.T) {
 	backend := &config.OCIBackendConfig{}
 
 	tests := []struct {
-		name         string
-		method       string
-		path         string
-		status       int
-		wantPresent  bool
+		name        string
+		method      string
+		path        string
+		status      int
+		wantPresent bool
 	}{
 		{"blob get 200 keeps", http.MethodGet, "/v2/ns/repo/blobs/sha256:abc", http.StatusOK, true},
 		{"blob get 206 keeps", http.MethodGet, "/v2/ns/repo/blobs/sha256:abc", http.StatusPartialContent, true},
 		{"blob get 404 removes", http.MethodGet, "/v2/ns/repo/blobs/sha256:abc", http.StatusNotFound, false},
+		{"blob upload get removes", http.MethodGet, "/v2/ns/repo/blobs/uploads/123", http.StatusOK, false},
+		{"blob path without digest removes", http.MethodGet, "/v2/ns/repo/blobs/", http.StatusOK, false},
 		{"non-blob get removes", http.MethodGet, "/v2/ns/repo/manifests/latest", http.StatusOK, false},
 		{"head keeps", http.MethodHead, "/v2/ns/repo/manifests/latest", http.StatusOK, true},
 	}

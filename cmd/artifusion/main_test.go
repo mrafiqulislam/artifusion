@@ -15,6 +15,7 @@ func TestShouldSkipRequestTimeout(t *testing.T) {
 	}{
 		{"blob get", http.MethodGet, "/v2/ideascale/mysql-data/blobs/sha256:abc", true},
 		{"blob head", http.MethodHead, "/v2/ideascale/mysql-data/blobs/sha256:abc", true},
+		{"blob upload get", http.MethodGet, "/v2/ideascale/mysql-data/blobs/uploads/123", false},
 		{"blob post", http.MethodPost, "/v2/ideascale/mysql-data/blobs/sha256:abc", false},
 		{"blob path without digest", http.MethodGet, "/v2/ideascale/mysql-data/blobs/", false},
 		{"blob path too short", http.MethodGet, "/v2/blobs/sha256:abc", false},
