@@ -146,17 +146,27 @@ func main() {
 	}
 	router.Use(middleware.Logger(logger, cfg.Logging.IncludeHeaders, cfg.Logging.IncludeBody))
 
-	// 5. Request timeout - enforce maximum request duration
+	// 5. Request timeout - enforce maximum request duration (skip blob streams)
 	requestTimeout := constants.DefaultRequestTimeout
 	if cfg.Server.WriteTimeout > 0 && cfg.Server.WriteTimeout < requestTimeout {
 		// Use server write timeout if it's lower (more restrictive)
 		requestTimeout = cfg.Server.WriteTimeout
 	}
-	router.Use(middleware.Timeout(requestTimeout))
+	timeoutMiddleware := middleware.Timeout(requestTimeout)
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip hard timeout for OCI blob streaming; rely on ingress idle timeout instead.
+			if shouldSkipRequestTimeout(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			timeoutMiddleware(next).ServeHTTP(w, r)
+		})
+	})
 
 	logger.Info().
 		Dur("timeout", requestTimeout).
-		Msg("Request timeout middleware enabled")
+		Msg("Request timeout middleware enabled (skips /v2/*/blobs/*)")
 
 	// 6. Concurrency limiting - limit total concurrent requests
 	if cfg.Server.MaxConcurrentReqs > 0 {
@@ -381,6 +391,13 @@ func main() {
 		Int("cache_size", stats.Size).
 		Float64("hit_rate", stats.HitRate).
 		Msg("GitHub auth cache statistics")
+}
+
+func shouldSkipRequestTimeout(r *http.Request) bool {
+	if r.Method != http.MethodHead && r.Method != http.MethodGet {
+		return false
+	}
+	return oci.IsOCIBlobPath(r.URL.Path)
 }
 
 // getEnvOrDefault returns the value of an environment variable or a default value if not set

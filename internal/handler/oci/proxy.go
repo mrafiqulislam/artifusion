@@ -146,9 +146,15 @@ func (h *Handler) prepareOCIHeaders(r *http.Request, resp *proxy.Response, backe
 	}
 
 	// For HEAD requests, keep Content-Length header (required by Docker client)
+	// For blob GETs, keep Content-Length when present (body is unmodified)
 	// For other requests with bodies, remove Content-Length to use chunked encoding
 	if r.Method != http.MethodHead {
-		resp.Headers.Del("Content-Length")
+		isBlobGet := r.Method == http.MethodGet &&
+			(resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent) &&
+			IsOCIBlobPath(r.URL.Path)
+		if !isBlobGet {
+			resp.Headers.Del("Content-Length")
+		}
 	}
 
 	// Determine public URL for URL rewriting
