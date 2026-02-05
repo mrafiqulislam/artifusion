@@ -120,7 +120,7 @@ PRODUCTION READY (Grade A) ✅
 | **Circuit Breaker** | ✅ Complete | Per-backend, auto-recovery, metrics |
 | **Rate Limiting** | ✅ Complete | Global + per-user, token bucket |
 | **Concurrency Limiting** | ✅ Complete | Semaphore-based, configurable |
-| **Request Timeout** | ✅ Complete | Global timeout, 504 on expiry |
+| **Request Timeout** | ✅ Complete | Global timeout (except OCI blob GET/HEAD), 504 on expiry |
 | **Graceful Shutdown** | ✅ Complete | Signal handling, connection draining |
 | **Panic Recovery** | ✅ Complete | Stack traces, request isolation |
 
