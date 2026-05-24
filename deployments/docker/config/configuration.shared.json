@@ -28,7 +28,7 @@
         "metadataMaxAge": 0,
         "proxied": [
           {
-            "reference": "https://maven.pkg.github.com/YOUR_ORG/*/",
+            "reference": "https://maven.pkg.github.com/mrafiqulislam/*/",
             "store": true,
             "allowedGroups": [],
             "allowedExtensions": [],
@@ -94,7 +94,7 @@
     "id": "artifusion-repository",
     "title": "Artifusion Maven Repository",
     "description": "Unified Maven repository with GitHub authentication",
-    "organizationWebsite": "https://github.com/mainuli/artifusion",
+    "organizationWebsite": "https://github.com/mrafiqulislam/artifusion",
     "organizationLogo": "",
     "icpLicense": ""
   }

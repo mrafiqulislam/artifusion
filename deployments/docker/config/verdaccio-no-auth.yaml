@@ -87,7 +87,7 @@ middlewares:
     enabled: true
 
 # ===== Logs Configuration =====
-logs:
+log:
   type: stdout
   format: pretty
   level: info
@@ -98,8 +98,6 @@ security:
     jwt:
       sign:
         expiresIn: 7d
-      verify:
-        someProp: [value]
 
 # ===== Notifications Configuration =====
 notify:
