@@ -27,8 +27,12 @@ services:
     networks:
       - artifusion
     restart: unless-stopped
-    # Note: Chainguard static image has no wget/curl/shell - health checks must be
-    # done externally (e.g. Kubernetes httpGet probe at /health). No healthcheck here.
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ===== OCI Pull-Through Cache =====
   oci-registry:
