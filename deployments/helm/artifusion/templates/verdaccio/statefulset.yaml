@@ -16,7 +16,7 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/verdaccio/configmap.yaml") . | sha256sum }}
         {{- if .Values.artifusion.config.github.required_org }}
-        checksum/github-packages-secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/github-packages-secret: {{ include (print $.Template.BasePath "/verdaccio/secret.yaml") . | sha256sum }}
         {{- end }}
       labels:
         {{- include "artifusion.verdaccio.selectorLabels" . | nindent 8 }}
@@ -43,8 +43,8 @@ spec:
             - name: NPM_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "artifusion.fullname" . }}-github-packages
-                  key: token
+                  name: {{ include "artifusion.verdaccio.serviceName" . }}-secret
+                  key: npm-token
           {{- end }}
           livenessProbe:
             httpGet:

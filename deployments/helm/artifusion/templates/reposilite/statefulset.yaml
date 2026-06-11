@@ -16,7 +16,7 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/reposilite/configmap.yaml") . | sha256sum }}
         {{- if .Values.artifusion.config.github.required_org }}
-        checksum/github-packages-secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/github-packages-secret: {{ include (print $.Template.BasePath "/reposilite/secret.yaml") . | sha256sum }}
         {{- end }}
       labels:
         {{- include "artifusion.reposilite.selectorLabels" . | nindent 8 }}
@@ -54,13 +54,13 @@ spec:
             - name: GITHUB_PACKAGES_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "artifusion.fullname" . }}-github-packages
-                  key: username
+                  name: {{ include "artifusion.reposilite.serviceName" . }}-secret
+                  key: github-username
             - name: GITHUB_PACKAGES_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "artifusion.fullname" . }}-github-packages
-                  key: token
+                  name: {{ include "artifusion.reposilite.serviceName" . }}-secret
+                  key: github-token
           {{- end }}
           volumeMounts:
             - name: config
