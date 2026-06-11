@@ -58,7 +58,7 @@ artifusion:
   ## @param artifusion.image.tag Artifusion image tag (immutable tags are recommended)
   ## @param artifusion.image.pullPolicy Artifusion image pull policy
   image:
-    repository: ghcr.io/mainuli/artifusion
+    repository: ghcr.io/mrafiqulislam/artifusion
     tag: ""  # Defaults to .Chart.AppVersion
     pullPolicy: IfNotPresent
 
