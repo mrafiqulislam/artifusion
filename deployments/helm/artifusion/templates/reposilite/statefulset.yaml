@@ -36,19 +36,19 @@ spec:
             - -c
             - |
               mkdir -p /app/data
-              mkdir -p /shared
-              rm -f /app/data/configuration.shared.json /shared/configuration.shared.json
+              mkdir -p /app/rendered-config
+              rm -f /app/data/configuration.shared.json /app/rendered-config/configuration.shared.json
               cp /config/configuration.cdn /app/data/configuration.cdn
-              cp /config/configuration.shared.template.json /shared/configuration.shared.json
+              cp /config/configuration.shared.json /app/rendered-config/configuration.shared.json
               {{- if .Values.artifusion.config.github.required_org }}
               escape_sed() {
                 printf '%s' "$1" | sed 's/[\/&]/\\&/g'
               }
-              sed -i "s/__GITHUB_PACKAGES_USERNAME__/$(escape_sed "$GITHUB_PACKAGES_USERNAME")/g" /shared/configuration.shared.json
-              sed -i "s/__GITHUB_PACKAGES_TOKEN__/$(escape_sed "$GITHUB_PACKAGES_TOKEN")/g" /shared/configuration.shared.json
+              sed -i "s/__GITHUB_PACKAGES_USERNAME__/$(escape_sed "$GITHUB_PACKAGES_USERNAME")/g" /app/rendered-config/configuration.shared.json
+              sed -i "s/__GITHUB_PACKAGES_TOKEN__/$(escape_sed "$GITHUB_PACKAGES_TOKEN")/g" /app/rendered-config/configuration.shared.json
               {{- end }}
               echo "Local configuration copied to /app/data/configuration.cdn"
-              echo "Shared configuration rendered to /shared/configuration.shared.json"
+              echo "Shared configuration rendered to /app/rendered-config/configuration.shared.json"
           {{- if .Values.artifusion.config.github.required_org }}
           env:
             - name: GITHUB_PACKAGES_USERNAME
@@ -68,8 +68,8 @@ spec:
               readOnly: true
             - name: data
               mountPath: /app/data
-            - name: shared-config
-              mountPath: /shared
+            - name: rendered-config
+              mountPath: /app/rendered-config
       containers:
         - name: reposilite
           securityContext:
@@ -87,7 +87,7 @@ spec:
                   name: {{ include "artifusion.reposilite.serviceName" . }}-admin
                   key: admin-token
             - name: REPOSILITE_OPTS
-              value: "--local-configuration=/app/data/configuration.cdn --shared-configuration=/shared/configuration.shared.json --token admin:$(REPOSILITE_ADMIN_TOKEN)"
+              value: "--local-configuration=/app/data/configuration.cdn --shared-configuration=/app/rendered-config/configuration.shared.json --token admin:$(REPOSILITE_ADMIN_TOKEN)"
           livenessProbe:
             httpGet:
               path: /
@@ -105,14 +105,14 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /app/data
-            - name: shared-config
-              mountPath: /shared
+            - name: rendered-config
+              mountPath: /app/rendered-config
               readOnly: true
       volumes:
         - name: config
           configMap:
             name: {{ include "artifusion.reposilite.serviceName" . }}
-        - name: shared-config
+        - name: rendered-config
           emptyDir: {}
   volumeClaimTemplates:
     - metadata:

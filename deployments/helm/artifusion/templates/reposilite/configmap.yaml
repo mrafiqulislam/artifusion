@@ -39,7 +39,7 @@ data:
     # Debug
     debugEnabled: false
 
-  configuration.shared.template.json: |
+  configuration.shared.json: |
     {
       "authentication": {
         "ldap": {
