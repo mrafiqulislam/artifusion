@@ -75,6 +75,7 @@ artifusion:
     ## GitHub authentication configuration
     github:
       ## @param artifusion.config.github.required_org GitHub organization required for access (empty = allow any GitHub user)
+      ## When set, the same organization is used for Maven/NPM GitHub Packages upstreams
       required_org: ""
       required_teams: []
       api_url: "https://api.github.com"
