@@ -15,6 +15,9 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/reposilite/configmap.yaml") . | sha256sum }}
+        {{- if .Values.artifusion.config.github.required_org }}
+        checksum/github-packages-secret: {{ include (print $.Template.BasePath "/reposilite/secret.yaml") . | sha256sum }}
+        {{- end }}
       labels:
         {{- include "artifusion.reposilite.selectorLabels" . | nindent 8 }}
     spec:
@@ -33,16 +36,40 @@ spec:
             - -c
             - |
               mkdir -p /app/data
+              mkdir -p /app/rendered-config
+              rm -f /app/data/configuration.shared.json /app/rendered-config/configuration.shared.json
               cp /config/configuration.cdn /app/data/configuration.cdn
-              cp /config/configuration.shared.json /app/data/configuration.shared.json
+              cp /config/configuration.shared.json /app/rendered-config/configuration.shared.json
+              {{- if .Values.artifusion.config.github.required_org }}
+              escape_sed() {
+                printf '%s' "$1" | sed 's/[\/&]/\\&/g'
+              }
+              sed -i "s/__GITHUB_PACKAGES_USERNAME__/$(escape_sed "$GITHUB_PACKAGES_USERNAME")/g" /app/rendered-config/configuration.shared.json
+              sed -i "s/__GITHUB_PACKAGES_TOKEN__/$(escape_sed "$GITHUB_PACKAGES_TOKEN")/g" /app/rendered-config/configuration.shared.json
+              {{- end }}
               echo "Local configuration copied to /app/data/configuration.cdn"
-              echo "Shared configuration copied to /app/data/configuration.shared.json"
+              echo "Shared configuration rendered to /app/rendered-config/configuration.shared.json"
+          {{- if .Values.artifusion.config.github.required_org }}
+          env:
+            - name: GITHUB_PACKAGES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "artifusion.reposilite.serviceName" . }}-secret
+                  key: github-username
+            - name: GITHUB_PACKAGES_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "artifusion.reposilite.serviceName" . }}-secret
+                  key: github-token
+          {{- end }}
           volumeMounts:
             - name: config
               mountPath: /config
               readOnly: true
             - name: data
               mountPath: /app/data
+            - name: rendered-config
+              mountPath: /app/rendered-config
       containers:
         - name: reposilite
           securityContext:
@@ -60,19 +87,7 @@ spec:
                   name: {{ include "artifusion.reposilite.serviceName" . }}-admin
                   key: admin-token
             - name: REPOSILITE_OPTS
-              value: "--local-configuration=/app/data/configuration.cdn --shared-configuration=/app/data/configuration.shared.json --token admin:$(REPOSILITE_ADMIN_TOKEN)"
-            - name: GITHUB_PACKAGES_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "artifusion.reposilite.serviceName" . }}-secret
-                  key: github-username
-                  optional: true
-            - name: GITHUB_PACKAGES_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "artifusion.reposilite.serviceName" . }}-secret
-                  key: github-token
-                  optional: true
+              value: "--local-configuration=/app/data/configuration.cdn --shared-configuration=/app/rendered-config/configuration.shared.json --token admin:$(REPOSILITE_ADMIN_TOKEN)"
           livenessProbe:
             httpGet:
               path: /
@@ -90,10 +105,15 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /app/data
+            - name: rendered-config
+              mountPath: /app/rendered-config
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: {{ include "artifusion.reposilite.serviceName" . }}
+        - name: rendered-config
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: data

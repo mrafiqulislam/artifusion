@@ -30,7 +30,7 @@ fullnameOverride: ""
 secrets:
   ## @param secrets.github.username GitHub username for GHCR and GitHub Packages authentication
   ## @param secrets.github.token GitHub Personal Access Token with read:packages scope
-  ## Required if using GHCR or GitHub Packages (when artifusion.config.github.required_org is set)
+  ## Required if using authenticated GHCR access or GitHub Packages upstreams
   github:
     username: ""
     token: ""
@@ -75,7 +75,7 @@ artifusion:
     ## GitHub authentication configuration
     github:
       ## @param artifusion.config.github.required_org GitHub organization required for access (empty = allow any GitHub user)
-      ## When set, automatically configures GitHub Packages for all backend services
+      ## When set, the same organization is used for Maven/NPM GitHub Packages upstreams
       required_org: ""
       required_teams: []
       api_url: "https://api.github.com"
@@ -419,7 +419,7 @@ reposilite:
   ## Reposilite automatically configures:
   ## - releases, snapshots (hosted repositories)
   ## - maven-central (mirror to repo.maven.apache.org)
-  ## - github-packages (mirror to maven.pkg.github.com/ORG/* - if required_org is set)
+  ## - github-packages (mirror to maven.pkg.github.com/ORG/* - if artifusion.config.github.required_org is set)
 
   ## Reposilite storage configuration
   ## @param reposilite.storage.size PVC size
@@ -480,7 +480,7 @@ verdaccio:
 
   ## Verdaccio automatically configures:
   ## - npmjs uplink (registry.npmjs.org) - always
-  ## - github uplink (npm.pkg.github.com with @ORG/* scope - if required_org is set)
+  ## - github uplink (npm.pkg.github.com with @ORG/* scope - if artifusion.config.github.required_org is set)
 
   ## Verdaccio storage configuration
   ## @param verdaccio.storage.size PVC size

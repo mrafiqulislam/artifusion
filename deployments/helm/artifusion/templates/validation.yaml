@@ -18,3 +18,10 @@ The OCI Distribution Specification mandates /v2 as the fixed API endpoint.
 {{- if .Values.artifusion.config.protocols.oci.path_prefix }}
   {{- fail "\n\n❌ VALIDATION FAILED: OCI protocol does not support path_prefix configuration.\n\nThe OCI Distribution Specification requires all API requests to use the /v2 endpoint.\nUnlike Maven and NPM protocols, OCI cannot use custom path prefixes.\n\nInvalid configuration:\n  protocols:\n    oci:\n      path_prefix: \"{{ .Values.artifusion.config.protocols.oci.path_prefix }}\"  # ❌ NOT SUPPORTED\n\nTo fix this error:\n  • Remove protocols.oci.path_prefix from your values file\n  • Use protocols.oci.host for host-based routing instead\n\nCorrect configuration (host-based routing):\n  protocols:\n    oci:\n      enabled: true\n      host: \"docker.example.com\"  # ✅ Route by domain\n      # path_prefix is not configurable - always uses /v2 per OCI spec\n\nOCI requests are automatically detected by the /v2 path prefix as required by the\nOCI Distribution Specification: https://github.com/opencontainers/distribution-spec\n" }}
 {{- end }}
+
+{{/*
+Validation: GitHub organization-backed upstreams need credentials.
+*/}}
+{{- if and .Values.artifusion.config.github.required_org (or (not .Values.secrets.github.username) (not .Values.secrets.github.token)) }}
+  {{- fail "\n\n❌ VALIDATION FAILED: GitHub credentials are required when artifusion.config.github.required_org is set.\n\nThe chart configures GitHub Packages upstreams for the required organization, so it needs credentials for upstream access.\n\nTo fix this error, set both values:\n\n  --set secrets.github.username=<your-github-username>\n  --set secrets.github.token=<ghp_xxx>\n" }}
+{{- end }}
