@@ -76,8 +76,7 @@ Clients must authenticate with GitHub Personal Access Token (PAT):
 
 {{- if not .Values.secrets.github.token }}
 
-⚠️  WARNING: GitHub upstream credentials not configured!
-To enable GitHub Packages and GHCR pull-through cache, set:
+💡 TIP: Configure GHCR credentials to enable authenticated pull-through cache:
   --set secrets.github.username=<your-github-username>
   --set secrets.github.token=<ghp_xxx>
 
