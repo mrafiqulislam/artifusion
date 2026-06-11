@@ -79,8 +79,8 @@ data:
                 "readTimeout": 15,
                 "authorization": {
                   "method": "BASIC",
-                  "login": "${GITHUB_PACKAGES_USERNAME}",
-                  "password": "${GITHUB_PACKAGES_TOKEN}"
+                  "login": "__GITHUB_PACKAGES_USERNAME__",
+                  "password": "__GITHUB_PACKAGES_TOKEN__"
                 },
                 "httpProxy": ""
               },
