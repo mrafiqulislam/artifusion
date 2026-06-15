@@ -224,6 +224,10 @@ Service names
 {{- printf "%s-oci-registry" (include "artifusion.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "artifusion.ociRegistry.credentialsSecretName" -}}
+{{- printf "%s-creds" (include "artifusion.ociRegistry.serviceName" .) }}
+{{- end }}
+
 {{- define "artifusion.registry.serviceName" -}}
 {{- printf "%s-registry" (include "artifusion.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
