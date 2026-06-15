@@ -36,18 +36,28 @@ data:
           - name: "local-hosted"
             url: "http://{{ include "artifusion.registry.serviceName" . }}:5000"
             upstream_namespace: ""
-            scope:
-              - "*"
+            scope: ["*"]
           {{- end }}
           {{- if .Values.ociRegistry.enabled }}
           {{- range .Values.ociRegistry.upstreams }}
-          - name: {{ default (printf "%s-cache" (replace "." "-" .namespace)) .backend_name | quote }}
+          - name: {{ .name | quote }}
             url: "http://{{ include "artifusion.ociRegistry.serviceName" $ }}:8080"
             upstream_namespace: {{ .namespace | quote }}
-            {{- with .scope }}
-            scope:
+            {{- if and (eq .namespace "ghcr.io") $.Values.artifusion.config.github.required_org }}
+            scope: []
+            {{- else }}
+            scope: {{ default (list "*") .scope | toJson }}
+            {{- end }}
+            {{- with .path_rewrite }}
+            path_rewrite:
               {{- toYaml . | nindent 14 }}
             {{- end }}
+          {{- end }}
+          {{- range .Values.ociRegistry.extraUpstreams }}
+          - name: {{ .name | quote }}
+            url: "http://{{ include "artifusion.ociRegistry.serviceName" $ }}:8080"
+            upstream_namespace: {{ .namespace | quote }}
+            scope: {{ default (list "*") .scope | toJson }}
             {{- with .path_rewrite }}
             path_rewrite:
               {{- toYaml . | nindent 14 }}

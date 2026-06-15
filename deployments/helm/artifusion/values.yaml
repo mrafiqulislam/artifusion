@@ -253,23 +253,30 @@ ociRegistry:
     tag: latest
     pullPolicy: IfNotPresent
 
-  ## OCI Registry upstream configuration
-  ## @param ociRegistry.upstreams Upstream registries for pull-through cache
+  ## @param ociRegistry.upstreams Default upstream registries (GHCR + Docker Hub)
   upstreams:
-    - namespace: "ghcr.io"
+    - name: "ghcr-cache"
+      namespace: "ghcr.io"
       host: "ghcr.io"
       tls: true
       manifest_invalidation_time: 12h
-      blob_invalidation_time: 336h  # 14 days
-      backend_name: "ghcr-cache"
-    - namespace: "docker.io"
+      blob_invalidation_time: 336h
+    - name: "dockerhub-cache"
+      namespace: "docker.io"
       host: "registry-1.docker.io"
       tls: true
       manifest_invalidation_time: 12h
       blob_invalidation_time: 336h
-      backend_name: "dockerhub-cache"
       path_rewrite:
         add_library_prefix: true
+
+  ## @param ociRegistry.extraUpstreams Additional upstream registries (e.g., DigitalOcean, GCR, ECR)
+  ## Also add credentials in secrets.ociUpstreams for private registries.
+  ## Example:
+  ##   extraUpstreams:
+  ##     - name: "digitalocean-cache"
+  ##       namespace: "registry.digitalocean.com"
+  extraUpstreams: []
 
   ## OCI Registry storage configuration
   ## @param ociRegistry.storage.size PVC size
