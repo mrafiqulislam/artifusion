@@ -1,5 +1,5 @@
 {{- if .Values.ociRegistry.enabled }}
-{{- $hasCredentials := or .Values.secrets.github.token .Values.secrets.dockerhub.token .Values.secrets.ociUpstreams }}
+{{- $hasCredentials := or .Values.secrets.github.token .Values.secrets.dockerhub.token .Values.secrets.extraCredentials }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -54,8 +54,8 @@ spec:
             - name: UPSTREAM_CREDENTIALS
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "artifusion.ociRegistry.serviceName" . }}-creds
-                  key: credentials
+                  name: {{ include "artifusion.ociRegistry.credentialsSecretName" . | quote }}
+                  key: "credentials"
             {{- end }}
           resources:
             {{- toYaml .Values.ociRegistry.resources | nindent 12 }}

@@ -42,17 +42,12 @@ secrets:
     username: ""
     token: ""
 
-  ## @param secrets.ociUpstreams Additional OCI upstream registry credentials
-  ## Map of registry namespace to credentials for private registries or rate limit avoidance
-  ## Example:
-  ##   ociUpstreams:
-  ##     registry.digitalocean.com:
-  ##       username: do-user
-  ##       token: dop_v1_xxx
-  ##     gcr.io:
-  ##       username: _json_key
-  ##       token: '{"type":"service_account"...}'
-  ociUpstreams: {}
+  ## @param secrets.extraCredentials Extra namespace-keyed OCI registry credentials
+  extraCredentials: {}
+  # extraCredentials:
+  #   registry.digitalocean.com:
+  #     username: do-user
+  #     token: dop_v1_xxx
 
 ## @section Artifusion parameters
 ## Artifusion is the main reverse proxy gateway
@@ -255,13 +250,13 @@ ociRegistry:
 
   ## @param ociRegistry.upstreams Default upstream registries (GHCR + Docker Hub)
   upstreams:
-    - name: "ghcr-cache"
+    - backend_name: "ghcr-cache"
       namespace: "ghcr.io"
       host: "ghcr.io"
       tls: true
       manifest_invalidation_time: 12h
       blob_invalidation_time: 336h
-    - name: "dockerhub-cache"
+    - backend_name: "dockerhub-cache"
       namespace: "docker.io"
       host: "registry-1.docker.io"
       tls: true
@@ -271,10 +266,10 @@ ociRegistry:
         add_library_prefix: true
 
   ## @param ociRegistry.extraUpstreams Additional upstream registries (e.g., DigitalOcean, GCR, ECR)
-  ## Also add credentials in secrets.ociUpstreams for private registries.
+  ## Also add credentials in secrets.extraCredentials for private registries.
   ## Example:
   ##   extraUpstreams:
-  ##     - name: "digitalocean-cache"
+  ##     - backend_name: "digitalocean-cache"
   ##       namespace: "registry.digitalocean.com"
   extraUpstreams: []
 
