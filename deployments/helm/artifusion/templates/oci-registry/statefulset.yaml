@@ -1,4 +1,5 @@
 {{- if .Values.ociRegistry.enabled }}
+{{- $hasCredentials := or .Values.secrets.github.token .Values.secrets.dockerhub.token .Values.secrets.ociUpstreams }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -15,7 +16,7 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/oci-registry/configmap.yaml") . | sha256sum }}
-        {{- if or .Values.secrets.github.token .Values.secrets.dockerhub.token }}
+        {{- if $hasCredentials }}
         checksum/secret: {{ include (print $.Template.BasePath "/oci-registry/secret.yaml") . | sha256sum }}
         {{- end }}
       labels:
@@ -49,7 +50,7 @@ spec:
           env:
             - name: OCI_REGISTRY_UPSTREAM
               value: "/config/oci-registry-upstream.yaml"
-            {{- if or .Values.secrets.github.token .Values.secrets.dockerhub.token }}
+            {{- if $hasCredentials }}
             - name: UPSTREAM_CREDENTIALS
               valueFrom:
                 secretKeyRef:

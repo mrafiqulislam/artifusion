@@ -451,7 +451,7 @@ docker-compose ps
 
 **Solutions:**
 1. Check cache volume: `docker volume inspect artifusion_oci-cache`
-2. Verify invalidation times in `oci-registry-upstream.yaml` (should be 336h, not 0s)
+2. Verify invalidation times in `oci-registry-upstream.yaml` (manifests should be 12h and blobs should be 336h, not 0s)
 3. Check oci-registry logs for cache hits: `docker-compose logs oci-registry | grep cache`
 
 ### Maven Deployment Failed
@@ -474,7 +474,7 @@ Add to `config/oci-registry-upstream.yaml`:
 - namespace: gcr.io
   host: gcr.io
   tls: true
-  manifest_invalidation_time: 336h
+  manifest_invalidation_time: 12h
   blob_invalidation_time: 336h
 ```
 

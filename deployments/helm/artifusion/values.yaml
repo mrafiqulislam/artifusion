@@ -42,6 +42,18 @@ secrets:
     username: ""
     token: ""
 
+  ## @param secrets.ociUpstreams Additional OCI upstream registry credentials
+  ## Map of registry namespace to credentials for private registries or rate limit avoidance
+  ## Example:
+  ##   ociUpstreams:
+  ##     registry.digitalocean.com:
+  ##       username: do-user
+  ##       token: dop_v1_xxx
+  ##     gcr.io:
+  ##       username: _json_key
+  ##       token: '{"type":"service_account"...}'
+  ociUpstreams: {}
+
 ## @section Artifusion parameters
 ## Artifusion is the main reverse proxy gateway
 
@@ -87,34 +99,6 @@ artifusion:
       oci:
         enabled: true
         host: ""  # Empty = path-based routing (always uses /v2 per OCI Distribution Spec)
-        pull_backends:
-          - name: "local-hosted"
-            url: "http://RELEASE_NAME-registry:5000"  # Will be replaced in template
-            upstream_namespace: ""
-            scope: ["*"]
-            ## Optional: Backend authentication (if backend requires credentials)
-            # auth:
-            #   type: "basic"
-            #   username: "registry-user"
-            #   password: "registry-password"
-          - name: "ghcr-cache"
-            url: "http://RELEASE_NAME-oci-registry:8080"  # Will be replaced in template
-            upstream_namespace: "ghcr.io"
-            scope: []  # Uses github.required_org if set
-          - name: "dockerhub-cache"
-            url: "http://RELEASE_NAME-oci-registry:8080"  # Will be replaced in template
-            upstream_namespace: "docker.io"
-            scope: ["*"]
-            path_rewrite:
-              add_library_prefix: true
-        push_backend:
-          name: "local-hosted"
-          url: "http://RELEASE_NAME-registry:5000"  # Will be replaced in template
-          ## Optional: Backend authentication (if backend requires credentials)
-          # auth:
-          #   type: "basic"
-          #   username: "registry-user"
-          #   password: "registry-password"
 
       ## Maven repository protocol
       maven:
@@ -270,18 +254,22 @@ ociRegistry:
     pullPolicy: IfNotPresent
 
   ## OCI Registry upstream configuration
-  ## @param ociRegistry.upstreams Upstream registries (GHCR + Docker Hub)
+  ## @param ociRegistry.upstreams Upstream registries for pull-through cache
   upstreams:
     - namespace: "ghcr.io"
       host: "ghcr.io"
       tls: true
-      manifest_invalidation_time: 336h  # 14 days
-      blob_invalidation_time: 336h
+      manifest_invalidation_time: 12h
+      blob_invalidation_time: 336h  # 14 days
+      backend_name: "ghcr-cache"
     - namespace: "docker.io"
       host: "registry-1.docker.io"
       tls: true
-      manifest_invalidation_time: 336h
+      manifest_invalidation_time: 12h
       blob_invalidation_time: 336h
+      backend_name: "dockerhub-cache"
+      path_rewrite:
+        add_library_prefix: true
 
   ## OCI Registry storage configuration
   ## @param ociRegistry.storage.size PVC size
