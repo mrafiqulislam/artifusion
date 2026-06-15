@@ -40,7 +40,7 @@ data:
           {{- end }}
           {{- if .Values.ociRegistry.enabled }}
           {{- range .Values.ociRegistry.upstreams }}
-          - name: {{ default .name .backend_name | quote }}
+          - name: {{ .name | quote }}
             url: "http://{{ include "artifusion.ociRegistry.serviceName" $ }}:8080"
             upstream_namespace: {{ .namespace | quote }}
             {{- if and (eq .namespace "ghcr.io") $.Values.artifusion.config.github.required_org }}
@@ -54,7 +54,7 @@ data:
             {{- end }}
           {{- end }}
           {{- range .Values.ociRegistry.extraUpstreams }}
-          - name: {{ default .name .backend_name | quote }}
+          - name: {{ .name | quote }}
             url: "http://{{ include "artifusion.ociRegistry.serviceName" $ }}:8080"
             upstream_namespace: {{ .namespace | quote }}
             scope: {{ default (list "*") .scope | toJson }}

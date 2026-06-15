@@ -250,13 +250,13 @@ ociRegistry:
 
   ## @param ociRegistry.upstreams Default upstream registries (GHCR + Docker Hub)
   upstreams:
-    - backend_name: "ghcr-cache"
+    - name: "ghcr-cache"
       namespace: "ghcr.io"
       host: "ghcr.io"
       tls: true
       manifest_invalidation_time: 12h
       blob_invalidation_time: 336h
-    - backend_name: "dockerhub-cache"
+    - name: "dockerhub-cache"
       namespace: "docker.io"
       host: "registry-1.docker.io"
       tls: true
@@ -269,7 +269,7 @@ ociRegistry:
   ## Also add credentials in secrets.extraCredentials for private registries.
   ## Example:
   ##   extraUpstreams:
-  ##     - backend_name: "digitalocean-cache"
+  ##     - name: "digitalocean-cache"
   ##       namespace: "registry.digitalocean.com"
   extraUpstreams: []
 
