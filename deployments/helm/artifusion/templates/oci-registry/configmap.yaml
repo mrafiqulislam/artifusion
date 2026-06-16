@@ -14,4 +14,11 @@ data:
       manifest_invalidation_time: {{ .manifest_invalidation_time }}
       blob_invalidation_time: {{ .blob_invalidation_time }}
     {{- end }}
+    {{- range .Values.ociRegistry.extraUpstreams }}
+    - namespace: {{ .namespace | quote }}
+      host: {{ default .namespace .host | quote }}
+      tls: {{ if hasKey . "tls" }}{{ .tls }}{{ else }}true{{ end }}
+      manifest_invalidation_time: {{ default "12h" .manifest_invalidation_time }}
+      blob_invalidation_time: {{ default "336h" .blob_invalidation_time }}
+    {{- end }}
 {{- end }}

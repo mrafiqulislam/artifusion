@@ -12,6 +12,13 @@ Artifusion requires at least one backend service to function properly.
 {{- end }}
 
 {{/*
+Validation: OCI protocol needs the hosted registry for push backend config.
+*/}}
+{{- if and .Values.artifusion.config.protocols.oci.enabled (not .Values.registry.enabled) }}
+  {{- fail "\n\n❌ VALIDATION FAILED: OCI protocol requires registry.enabled=true.\n\nArtifusion's OCI handler requires a push_backend, and this chart derives that backend from the hosted registry service.\n\nTo fix this error, enable the hosted registry:\n\n  --set registry.enabled=true\n" }}
+{{- end }}
+
+{{/*
 Validation: OCI protocol does not support path_prefix.
 The OCI Distribution Specification mandates /v2 as the fixed API endpoint.
 */}}
@@ -22,6 +29,8 @@ The OCI Distribution Specification mandates /v2 as the fixed API endpoint.
 {{/*
 Validation: GitHub organization-backed upstreams need credentials.
 */}}
-{{- if and .Values.artifusion.config.github.required_org (or (not .Values.secrets.github.username) (not .Values.secrets.github.token)) }}
+{{- $hasGitHubCredentials := and .Values.secrets.github.username .Values.secrets.github.token }}
+{{- $needsGitHubPackageCredentials := or .Values.reposilite.enabled .Values.verdaccio.enabled }}
+{{- if and .Values.artifusion.config.github.required_org $needsGitHubPackageCredentials (not $hasGitHubCredentials) }}
   {{- fail "\n\n❌ VALIDATION FAILED: GitHub credentials are required when artifusion.config.github.required_org is set.\n\nThe chart configures GitHub Packages upstreams for the required organization, so it needs credentials for upstream access.\n\nTo fix this error, set both values:\n\n  --set secrets.github.username=<your-github-username>\n  --set secrets.github.token=<ghp_xxx>\n" }}
 {{- end }}

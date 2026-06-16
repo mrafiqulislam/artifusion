@@ -42,6 +42,13 @@ secrets:
     username: ""
     token: ""
 
+  ## @param secrets.extraCredentials Extra namespace-keyed OCI registry credentials
+  extraCredentials: {}
+  # extraCredentials:
+  #   registry.digitalocean.com:
+  #     username: do-user
+  #     token: dop_v1_xxx
+
 ## @section Artifusion parameters
 ## Artifusion is the main reverse proxy gateway
 
@@ -87,34 +94,6 @@ artifusion:
       oci:
         enabled: true
         host: ""  # Empty = path-based routing (always uses /v2 per OCI Distribution Spec)
-        pull_backends:
-          - name: "local-hosted"
-            url: "http://RELEASE_NAME-registry:5000"  # Will be replaced in template
-            upstream_namespace: ""
-            scope: ["*"]
-            ## Optional: Backend authentication (if backend requires credentials)
-            # auth:
-            #   type: "basic"
-            #   username: "registry-user"
-            #   password: "registry-password"
-          - name: "ghcr-cache"
-            url: "http://RELEASE_NAME-oci-registry:8080"  # Will be replaced in template
-            upstream_namespace: "ghcr.io"
-            scope: []  # Uses github.required_org if set
-          - name: "dockerhub-cache"
-            url: "http://RELEASE_NAME-oci-registry:8080"  # Will be replaced in template
-            upstream_namespace: "docker.io"
-            scope: ["*"]
-            path_rewrite:
-              add_library_prefix: true
-        push_backend:
-          name: "local-hosted"
-          url: "http://RELEASE_NAME-registry:5000"  # Will be replaced in template
-          ## Optional: Backend authentication (if backend requires credentials)
-          # auth:
-          #   type: "basic"
-          #   username: "registry-user"
-          #   password: "registry-password"
 
       ## Maven repository protocol
       maven:
@@ -269,19 +248,30 @@ ociRegistry:
     tag: latest
     pullPolicy: IfNotPresent
 
-  ## OCI Registry upstream configuration
-  ## @param ociRegistry.upstreams Upstream registries (GHCR + Docker Hub)
+  ## @param ociRegistry.upstreams Default upstream registries (GHCR + Docker Hub)
   upstreams:
-    - namespace: "ghcr.io"
+    - name: "ghcr-cache"
+      namespace: "ghcr.io"
       host: "ghcr.io"
       tls: true
-      manifest_invalidation_time: 336h  # 14 days
+      manifest_invalidation_time: 12h
       blob_invalidation_time: 336h
-    - namespace: "docker.io"
+    - name: "dockerhub-cache"
+      namespace: "docker.io"
       host: "registry-1.docker.io"
       tls: true
-      manifest_invalidation_time: 336h
+      manifest_invalidation_time: 12h
       blob_invalidation_time: 336h
+      path_rewrite:
+        add_library_prefix: true
+
+  ## @param ociRegistry.extraUpstreams Additional upstream registries (e.g., DigitalOcean, GCR, ECR)
+  ## Also add credentials in secrets.extraCredentials for private registries.
+  ## Example:
+  ##   extraUpstreams:
+  ##     - name: "digitalocean-cache"
+  ##       namespace: "registry.digitalocean.com"
+  extraUpstreams: []
 
   ## OCI Registry storage configuration
   ## @param ociRegistry.storage.size PVC size

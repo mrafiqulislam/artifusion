@@ -32,24 +32,38 @@ data:
         host: ""
         {{- end }}
         pull_backends:
+          {{- if .Values.registry.enabled }}
           - name: "local-hosted"
             url: "http://{{ include "artifusion.registry.serviceName" . }}:5000"
             upstream_namespace: ""
             scope: ["*"]
-          - name: "ghcr-cache"
-            url: "http://{{ include "artifusion.ociRegistry.serviceName" . }}:8080"
-            upstream_namespace: "ghcr.io"
-            {{- if .Values.artifusion.config.github.required_org }}
+          {{- end }}
+          {{- if .Values.ociRegistry.enabled }}
+          {{- range .Values.ociRegistry.upstreams }}
+          - name: {{ .name | quote }}
+            url: "http://{{ include "artifusion.ociRegistry.serviceName" $ }}:8080"
+            upstream_namespace: {{ .namespace | quote }}
+            {{- if and (eq .namespace "ghcr.io") $.Values.artifusion.config.github.required_org }}
             scope: []
             {{- else }}
-            scope: ["*"]
+            scope: {{ default (list "*") .scope | toJson }}
             {{- end }}
-          - name: "dockerhub-cache"
-            url: "http://{{ include "artifusion.ociRegistry.serviceName" . }}:8080"
-            upstream_namespace: "docker.io"
-            scope: ["*"]
+            {{- with .path_rewrite }}
             path_rewrite:
-              add_library_prefix: true
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+          {{- end }}
+          {{- range .Values.ociRegistry.extraUpstreams }}
+          - name: {{ .name | quote }}
+            url: "http://{{ include "artifusion.ociRegistry.serviceName" $ }}:8080"
+            upstream_namespace: {{ .namespace | quote }}
+            scope: {{ default (list "*") .scope | toJson }}
+            {{- with .path_rewrite }}
+            path_rewrite:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
         push_backend:
           name: "local-hosted"
           url: "http://{{ include "artifusion.registry.serviceName" . }}:5000"
