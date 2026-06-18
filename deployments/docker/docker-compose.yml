@@ -50,7 +50,7 @@ services:
       - ./config/oci-registry-upstream.yaml:/etc/oci-registry/upstream-config.yaml:ro
       - oci-cache:/var/lib/oci-cache
     environment:
-      UPSTREAM_CREDENTIALS: ${UPSTREAM_CREDENTIALS:-}
+      UPSTREAM_CREDENTIALS: ${UPSTREAM_CREDENTIALS:-{}}
     depends_on:
       - registry
     networks:
@@ -91,11 +91,11 @@ services:
         set -e
         cp /tmp/configuration.cdn /app/data/configuration.cdn
         cp /tmp/configuration.shared.json /app/data/configuration.shared.json
-        if [ -n "$REPOSILITE_ADMIN_TOKEN" ]; then
-          exec java $JAVA_OPTS -jar reposilite.jar $REPOSILITE_OPTS --token admin:$REPOSILITE_ADMIN_TOKEN
+        if [ -n "$$REPOSILITE_ADMIN_TOKEN" ]; then
+          exec java $$JAVA_OPTS -jar reposilite.jar $$REPOSILITE_OPTS --token admin:$$REPOSILITE_ADMIN_TOKEN
         else
           echo "WARNING: REPOSILITE_ADMIN_TOKEN not set. Backend authentication disabled."
-          exec java $JAVA_OPTS -jar reposilite.jar $REPOSILITE_OPTS
+          exec java $$JAVA_OPTS -jar reposilite.jar $$REPOSILITE_OPTS
         fi
     environment:
       REPOSILITE_OPTS: "--local-configuration=/app/data/configuration.cdn --shared-configuration=/app/data/configuration.shared.json"
@@ -107,7 +107,7 @@ services:
       - artifusion
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/api/maven/details/maven || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/maven/details/maven || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -131,7 +131,7 @@ services:
       - artifusion
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:4873/-/ping || exit 1"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:4873/-/ping || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
