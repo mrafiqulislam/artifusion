@@ -103,6 +103,10 @@ artifusion:
         backend:
           name: "reposilite"
           url: "http://RELEASE_NAME-reposilite:8080/maven"  # Will be replaced in template (includes repository name)
+          ## Optional: longest a single backend request may take, including reading the whole
+          ## response body. Empty = Artifusion's default (300s). Raise it for large downloads
+          ## on slow links, together with artifusion.config.server.write_timeout.
+          request_timeout: ""
           ## Optional: Backend authentication (if backend requires credentials)
           ## Artifusion injects these credentials when proxying to the backend
           ## Note: This is separate from client authentication (GitHub PAT)
@@ -126,6 +130,9 @@ artifusion:
         backend:
           name: "verdaccio"
           url: "http://RELEASE_NAME-verdaccio:4873"  # Will be replaced in template
+          ## Optional: longest a single backend request may take, including reading the whole
+          ## response body. Empty = Artifusion's default (300s).
+          request_timeout: ""
           ## Optional: Backend authentication (if backend requires credentials)
           ## Artifusion injects these credentials when proxying to the backend
           # auth:

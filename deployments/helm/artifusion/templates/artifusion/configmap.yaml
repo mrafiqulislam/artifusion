@@ -79,6 +79,9 @@ data:
         backend:
           name: "reposilite"
           url: "http://{{ include "artifusion.reposilite.serviceName" . }}:8080/maven"
+          {{- with .Values.artifusion.config.protocols.maven.backend.request_timeout }}
+          request_timeout: {{ . }}
+          {{- end }}
           {{- if .Values.reposilite.enabled }}
           # Backend auth credentials injected from environment variables
           auth:
@@ -98,6 +101,9 @@ data:
         backend:
           name: "verdaccio"
           url: "http://{{ include "artifusion.verdaccio.serviceName" . }}:4873"
+          {{- with .Values.artifusion.config.protocols.npm.backend.request_timeout }}
+          request_timeout: {{ . }}
+          {{- end }}
 
     rate_limit:
       enabled: {{ .Values.artifusion.config.rate_limit.enabled }}
