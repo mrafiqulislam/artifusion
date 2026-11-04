@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -146,17 +147,27 @@ func main() {
 	}
 	router.Use(middleware.Logger(logger, cfg.Logging.IncludeHeaders, cfg.Logging.IncludeBody))
 
-	// 5. Request timeout - enforce maximum request duration (skip artifact downloads)
+	// 5. Request timeout - enforce maximum request duration (skip blob streams)
 	requestTimeout := constants.DefaultRequestTimeout
 	if cfg.Server.WriteTimeout > 0 && cfg.Server.WriteTimeout < requestTimeout {
 		// Use server write timeout if it's lower (more restrictive)
 		requestTimeout = cfg.Server.WriteTimeout
 	}
-	router.Use(requestTimeoutMiddleware(requestTimeout, newSkipRequestTimeout(cfg)))
+	timeoutMiddleware := middleware.Timeout(requestTimeout)
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip hard timeout for OCI blob streaming and Maven/npm downloads; rely on ingress idle timeout instead.
+			if shouldSkipRequestTimeout(r, cfg) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			timeoutMiddleware(next).ServeHTTP(w, r)
+		})
+	})
 
 	logger.Info().
 		Dur("timeout", requestTimeout).
-		Msg("Request timeout middleware enabled (skips GET/HEAD of OCI blobs and of Maven/npm artifacts)")
+		Msg("Request timeout middleware enabled (skips /v2/*/blobs/* and Maven/npm downloads)")
 
 	// 6. Concurrency limiting - limit total concurrent requests
 	if cfg.Server.MaxConcurrentReqs > 0 {
@@ -383,56 +394,27 @@ func main() {
 		Msg("GitHub auth cache statistics")
 }
 
-// requestTimeoutMiddleware applies the hard request timeout to every request
-// except the ones skip selects. Skipped requests are not cut off by the
-// timeout; they are still bounded by the server write timeout and the backend
-// request timeout.
-func requestTimeoutMiddleware(timeout time.Duration, skip func(*http.Request) bool) func(http.Handler) http.Handler {
-	timeoutMiddleware := middleware.Timeout(timeout)
-	return func(next http.Handler) http.Handler {
-		withTimeout := timeoutMiddleware(next)
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if skip(r) {
-				next.ServeHTTP(w, r)
-				return
-			}
-			withTimeout.ServeHTTP(w, r)
-		})
-	}
-}
-
-// newSkipRequestTimeout returns the predicate that exempts artifact downloads
-// from the hard request timeout. A download is a GET or HEAD for an OCI blob,
-// or for any Maven or npm request as routed by the same host and path-prefix
-// rules the protocol detectors use. Those responses can be very large (for
-// example a multi-hundred-megabyte file), so their duration depends on the
-// client's bandwidth and must not be capped at the default of a few seconds.
-// Everything else (manifests, uploads, auth, health, ...) keeps the timeout.
-func newSkipRequestTimeout(cfg *config.Config) func(*http.Request) bool {
-	var artifactProtocols []detector.Detector
-	if cfg.Protocols.Maven.Enabled {
-		artifactProtocols = append(artifactProtocols,
-			detector.NewMavenDetector(cfg.Protocols.Maven.Host, cfg.Protocols.Maven.PathPrefix))
-	}
-	if cfg.Protocols.NPM.Enabled {
-		artifactProtocols = append(artifactProtocols,
-			detector.NewNPMDetector(cfg.Protocols.NPM.Host, cfg.Protocols.NPM.PathPrefix))
-	}
-
-	return func(r *http.Request) bool {
-		if r.Method != http.MethodHead && r.Method != http.MethodGet {
-			return false
-		}
-		if oci.IsOCIBlobPath(r.URL.Path) {
-			return true
-		}
-		for _, d := range artifactProtocols {
-			if d.Detect(r) {
-				return true
-			}
-		}
+func shouldSkipRequestTimeout(r *http.Request, cfg *config.Config) bool {
+	if r.Method != http.MethodHead && r.Method != http.MethodGet {
 		return false
 	}
+	if oci.IsOCIBlobPath(r.URL.Path) {
+		return true
+	}
+	// Maven and npm downloads can be large, so their duration depends on the client's bandwidth
+	for _, p := range []struct {
+		enabled bool
+		prefix  string
+	}{
+		{cfg.Protocols.Maven.Enabled, cfg.Protocols.Maven.PathPrefix},
+		{cfg.Protocols.NPM.Enabled, cfg.Protocols.NPM.PathPrefix},
+	} {
+		prefix := strings.TrimSuffix(p.prefix, "/")
+		if p.enabled && prefix != "" && strings.HasPrefix(r.URL.Path, prefix+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // getEnvOrDefault returns the value of an environment variable or a default value if not set
