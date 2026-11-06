@@ -30,7 +30,7 @@ data:
 
     # Performance
     compressionStrategy: none
-    idleTimeout: 30000
+    idleTimeout: {{ .Values.reposilite.idleTimeout | int64 }}
 
     # Caching
     bypassExternalCache: true

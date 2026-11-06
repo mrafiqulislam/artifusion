@@ -112,6 +112,7 @@ func main() {
 
 	// Create shared proxy client with circuit breaker support
 	proxyClient := proxy.NewClient(logger, circuitBreakerManager)
+	proxyClient.SetStreamIdleTimeout(cfg.Server.StreamIdleTimeout)
 
 	// Create health check handler
 	healthHandler := health.NewHandler(version)
@@ -126,6 +127,8 @@ func main() {
 	router := chi.NewRouter()
 
 	// Apply middleware stack (order matters!)
+
+	router.Use(middleware.StreamDeadlines(cfg.Server.StreamIdleTimeout))
 
 	// 1. Request ID - must be first to ensure all logs have request ID
 	router.Use(middleware.RequestID)
@@ -339,6 +342,7 @@ func main() {
 		Dur("read_timeout", cfg.Server.ReadTimeout).
 		Dur("write_timeout", cfg.Server.WriteTimeout).
 		Dur("idle_timeout", cfg.Server.IdleTimeout).
+		Dur("stream_idle_timeout", cfg.Server.StreamIdleTimeout).
 		Int("max_header_bytes", cfg.Server.MaxHeaderBytes).
 		Msg("HTTP server configuration")
 

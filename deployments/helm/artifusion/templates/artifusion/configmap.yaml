@@ -11,6 +11,9 @@ data:
       port: {{ .Values.artifusion.config.server.port }}
       read_timeout: {{ .Values.artifusion.config.server.read_timeout }}
       write_timeout: {{ .Values.artifusion.config.server.write_timeout }}
+      {{- with .Values.artifusion.config.server.stream_idle_timeout }}
+      stream_idle_timeout: {{ . }}
+      {{- end }}
       max_concurrent_requests: {{ .Values.artifusion.config.server.max_concurrent_requests }}
 
     github:

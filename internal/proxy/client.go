@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -32,6 +33,7 @@ type Client struct {
 	mu                sync.RWMutex
 	logger            zerolog.Logger
 	circuitBreakerMgr *CircuitBreakerManager
+	streamIdleTimeout time.Duration
 }
 
 // NewClient creates a new proxy client
@@ -41,6 +43,10 @@ func NewClient(logger zerolog.Logger, cbManager *CircuitBreakerManager) *Client 
 		logger:            logger,
 		circuitBreakerMgr: cbManager,
 	}
+}
+
+func (c *Client) SetStreamIdleTimeout(d time.Duration) {
+	c.streamIdleTimeout = d
 }
 
 // Request represents a proxy request
@@ -154,8 +160,10 @@ func (c *Client) doProxyRequest(req *Request) (*Response, error) {
 		Msg("Proxying to backend")
 
 	// Create backend request
-	backendReq, err := http.NewRequestWithContext(req.OriginalReq.Context(), req.Method, backendURL, req.Body)
+	ctx, cancel := context.WithCancel(req.OriginalReq.Context())
+	backendReq, err := http.NewRequestWithContext(ctx, req.Method, backendURL, req.Body)
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to create backend request: %w", err)
 	}
 
@@ -175,6 +183,7 @@ func (c *Client) doProxyRequest(req *Request) (*Response, error) {
 
 	// Inject backend authentication if configured
 	if err := c.injectBackendAuth(backendReq, req.Backend); err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to inject backend auth: %w", err)
 	}
 
@@ -187,6 +196,7 @@ func (c *Client) doProxyRequest(req *Request) (*Response, error) {
 	duration := time.Since(startTime)
 
 	if err != nil {
+		cancel()
 		c.logger.Error().Err(err).
 			Str("backend", req.Backend.GetName()).
 			Str("url", backendURL).
@@ -194,6 +204,8 @@ func (c *Client) doProxyRequest(req *Request) (*Response, error) {
 			Msg("Backend request failed")
 		return nil, err
 	}
+
+	resp.Body = newIdleTimeoutBody(resp.Body, c.streamIdleTimeout, cancel)
 
 	c.logger.Debug().
 		Str("backend", req.Backend.GetName()).
@@ -437,6 +449,8 @@ func (c *Client) getOrCreateClient(backend BackendConfig) *http.Client {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 
+		ResponseHeaderTimeout: backend.GetRequestTimeout(),
+
 		// Reuse connections
 		DisableKeepAlives: false,
 	}
@@ -444,7 +458,6 @@ func (c *Client) getOrCreateClient(backend BackendConfig) *http.Client {
 	// Create HTTP client
 	client = &http.Client{
 		Transport: transport,
-		Timeout:   backend.GetRequestTimeout(),
 		// Don't follow redirects by default - let caller decide
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -457,8 +470,44 @@ func (c *Client) getOrCreateClient(backend BackendConfig) *http.Client {
 		Str("backend", backend.GetName()).
 		Int("max_idle_conns", backend.GetMaxIdleConns()).
 		Int("max_idle_conns_per_host", backend.GetMaxIdleConnsPerHost()).
-		Dur("timeout", backend.GetRequestTimeout()).
+		Dur("response_header_timeout", backend.GetRequestTimeout()).
+		Dur("stream_idle_timeout", c.streamIdleTimeout).
 		Msg("Created HTTP client for backend")
 
 	return client
+}
+
+type idleTimeoutBody struct {
+	io.ReadCloser
+	timer  *time.Timer
+	idle   time.Duration
+	cancel context.CancelFunc
+}
+
+func newIdleTimeoutBody(body io.ReadCloser, idle time.Duration, cancel context.CancelFunc) io.ReadCloser {
+	b := &idleTimeoutBody{ReadCloser: body, idle: idle, cancel: cancel}
+	if idle > 0 {
+		b.timer = time.AfterFunc(idle, cancel)
+		b.timer.Stop()
+	}
+	return b
+}
+
+func (b *idleTimeoutBody) Read(p []byte) (int, error) {
+	if b.timer == nil {
+		return b.ReadCloser.Read(p)
+	}
+	b.timer.Reset(b.idle)
+	n, err := b.ReadCloser.Read(p)
+	b.timer.Stop()
+	return n, err
+}
+
+func (b *idleTimeoutBody) Close() error {
+	if b.timer != nil {
+		b.timer.Stop()
+	}
+	err := b.ReadCloser.Close()
+	b.cancel()
+	return err
 }

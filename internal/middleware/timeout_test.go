@@ -262,3 +262,46 @@ type mockFlushWriter struct {
 func (m *mockFlushWriter) Flush() {
 	m.flushed = true
 }
+
+func TestTimeoutMiddleware_StreamingAfterHeadersIsNotCut(t *testing.T) {
+	handler := Timeout(200 * time.Millisecond)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		for i := 0; i < 6; i++ {
+			if _, err := w.Write([]byte("chunk")); err != nil {
+				t.Errorf("write %d failed: %v", i, err)
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if rec.Code != http.StatusOK || rec.Body.String() != "chunkchunkchunkchunkchunkchunk" {
+		t.Fatalf("got status %d body %q, want full body after headers were sent", rec.Code, rec.Body.String())
+	}
+}
+
+func TestTimeoutMiddleware_NoHeadersBeforeDeadline(t *testing.T) {
+	handlerCtxErr := make(chan error, 1)
+	handler := Timeout(100 * time.Millisecond)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+		handlerCtxErr <- r.Context().Err()
+	}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if rec.Code != http.StatusGatewayTimeout {
+		t.Fatalf("got status %d, want %d", rec.Code, http.StatusGatewayTimeout)
+	}
+	select {
+	case err := <-handlerCtxErr:
+		if err == nil {
+			t.Fatal("handler context was not cancelled")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("handler context was not cancelled")
+	}
+}

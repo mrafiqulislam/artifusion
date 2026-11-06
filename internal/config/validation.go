@@ -55,6 +55,10 @@ func (s *ServerConfig) Validate() error {
 		return fmt.Errorf("maxConcurrentRequests must be at least 1")
 	}
 
+	if s.StreamIdleTimeout < 0 {
+		return fmt.Errorf("invalid stream idle timeout: %v", s.StreamIdleTimeout)
+	}
+
 	return nil
 }
 
