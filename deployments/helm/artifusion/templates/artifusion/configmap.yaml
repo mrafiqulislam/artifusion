@@ -11,9 +11,6 @@ data:
       port: {{ .Values.artifusion.config.server.port }}
       read_timeout: {{ .Values.artifusion.config.server.read_timeout }}
       write_timeout: {{ .Values.artifusion.config.server.write_timeout }}
-      {{- with .Values.artifusion.config.server.shutdown_timeout }}
-      shutdown_timeout: {{ . }}
-      {{- end }}
       {{- with .Values.artifusion.config.server.stream_idle_timeout }}
       stream_idle_timeout: {{ . }}
       {{- end }}

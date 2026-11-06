@@ -346,7 +346,6 @@ func main() {
 		Dur("read_timeout", cfg.Server.ReadTimeout).
 		Dur("write_timeout", cfg.Server.WriteTimeout).
 		Dur("idle_timeout", cfg.Server.IdleTimeout).
-		Dur("shutdown_timeout", cfg.Server.ShutdownTimeout).
 		Dur("stream_idle_timeout", cfg.Server.StreamIdleTimeout).
 		Int64("min_transfer_rate", cfg.Server.MinTransferRate).
 		Dur("min_transfer_window", cfg.Server.MinTransferWindow).
