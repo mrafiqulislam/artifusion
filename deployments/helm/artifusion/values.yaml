@@ -60,6 +60,8 @@ artifusion:
   ## For production, increase to 3+ for high availability
   replicaCount: 1
 
+  terminationGracePeriodSeconds: 1830
+
   ## Artifusion image configuration
   ## @param artifusion.image.repository Artifusion image repository
   ## @param artifusion.image.tag Artifusion image tag (immutable tags are recommended)
@@ -77,6 +79,10 @@ artifusion:
       port: 8080
       read_timeout: 60s
       write_timeout: 300s
+      shutdown_timeout: 1800s
+      stream_idle_timeout: 120s
+      min_transfer_rate: 1024
+      min_transfer_window: 10m
       max_concurrent_requests: 10000
 
     ## GitHub authentication configuration
@@ -239,6 +245,8 @@ ociRegistry:
   ## @param ociRegistry.enabled Enable OCI Registry StatefulSet
   enabled: true
 
+  checkCacheDigest: false
+
   ## OCI Registry image configuration
   ## @param ociRegistry.image.repository OCI Registry image repository
   ## @param ociRegistry.image.tag OCI Registry image tag
@@ -396,6 +404,8 @@ registry:
 reposilite:
   ## @param reposilite.enabled Enable Reposilite StatefulSet
   enabled: true
+
+  idleTimeout: 600000
 
   ## Reposilite image configuration
   ## @param reposilite.image.repository Reposilite image repository

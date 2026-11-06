@@ -40,6 +40,9 @@ type ServerConfig struct {
 	WriteTimeout      time.Duration `mapstructure:"write_timeout"`
 	IdleTimeout       time.Duration `mapstructure:"idle_timeout"`
 	ShutdownTimeout   time.Duration `mapstructure:"shutdown_timeout"`
+	StreamIdleTimeout time.Duration `mapstructure:"stream_idle_timeout"`
+	MinTransferRate   int64         `mapstructure:"min_transfer_rate"`
+	MinTransferWindow time.Duration `mapstructure:"min_transfer_window"`
 	MaxHeaderBytes    int           `mapstructure:"max_header_bytes"`
 	ReadBufferSize    int           `mapstructure:"read_buffer_size"`
 	WriteBufferSize   int           `mapstructure:"write_buffer_size"`
@@ -236,6 +239,8 @@ const (
 	DefaultWriteTimeout      = 300 * time.Second
 	DefaultIdleTimeout       = 120 * time.Second
 	DefaultShutdownTimeout   = 30 * time.Second
+	DefaultStreamIdleTimeout = 120 * time.Second
+	DefaultMinTransferWindow = 10 * time.Minute
 	DefaultMaxHeaderBytes    = 1 << 20   // 1 MB
 	DefaultReadBufferSize    = 32 * 1024 // 32 KB
 	DefaultWriteBufferSize   = 32 * 1024 // 32 KB
@@ -278,6 +283,12 @@ func (c *Config) SetDefaults() {
 	}
 	if c.Server.ShutdownTimeout == 0 {
 		c.Server.ShutdownTimeout = DefaultShutdownTimeout
+	}
+	if c.Server.StreamIdleTimeout == 0 {
+		c.Server.StreamIdleTimeout = DefaultStreamIdleTimeout
+	}
+	if c.Server.MinTransferWindow == 0 {
+		c.Server.MinTransferWindow = DefaultMinTransferWindow
 	}
 	if c.Server.MaxHeaderBytes == 0 {
 		c.Server.MaxHeaderBytes = DefaultMaxHeaderBytes

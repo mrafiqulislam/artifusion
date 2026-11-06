@@ -24,6 +24,9 @@ spec:
         {{- include "artifusion.imagePullSecrets" . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "artifusion.serviceAccountName" . }}
+      {{- with .Values.artifusion.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.artifusion.podSecurityContext | nindent 8 }}
       {{- if or .Values.registry.enabled .Values.ociRegistry.enabled .Values.reposilite.enabled .Values.verdaccio.enabled }}

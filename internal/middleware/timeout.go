@@ -202,14 +202,15 @@ func (tw *timeoutWriter) writeHeaderLocked(statusCode int) {
 	tw.w.WriteHeader(statusCode)
 }
 
-// timeout marks the writer as timed out and blocks future writes. It returns
-// true if headers were already sent to the client.
-func (tw *timeoutWriter) timeout() bool {
+func (tw *timeoutWriter) timeoutBeforeHeaders() bool {
 	tw.mu.Lock()
 	defer tw.mu.Unlock()
 
+	if tw.wroteHeader {
+		return false
+	}
 	tw.timedOut = true
-	return tw.wroteHeader
+	return true
 }
 
 func (tw *timeoutWriter) flush(fl http.Flusher) {
@@ -462,8 +463,11 @@ func (w *contextCloseNotifier) Push(target string, opts *http.PushOptions) error
 func Timeout(duration time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithTimeout(r.Context(), duration)
+			ctx, cancel := context.WithCancel(r.Context())
 			defer cancel()
+
+			timer := time.NewTimer(duration)
+			defer timer.Stop()
 
 			done := make(chan struct{})
 			panicChan := make(chan interface{}, 1)
@@ -500,14 +504,19 @@ func Timeout(duration time.Duration) func(http.Handler) http.Handler {
 				return
 			case p := <-panicChan:
 				panic(p)
-			case <-ctx.Done():
-				if ctx.Err() == context.DeadlineExceeded {
-					headersWritten := core.timeout()
-					if !headersWritten {
-						errors.ErrorResponse(w, errors.ErrBackendTimeout.WithMessage(
-							"Request exceeded maximum allowed duration"))
-					}
+			case <-timer.C:
+				if core.timeoutBeforeHeaders() {
+					cancel()
+					errors.ErrorResponse(w, errors.ErrBackendTimeout.WithMessage(
+						"Request exceeded maximum allowed duration"))
+					return
 				}
+			}
+
+			select {
+			case <-done:
+			case p := <-panicChan:
+				panic(p)
 			}
 		})
 	}
