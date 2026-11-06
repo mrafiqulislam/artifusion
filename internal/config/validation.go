@@ -59,14 +59,6 @@ func (s *ServerConfig) Validate() error {
 		return fmt.Errorf("invalid stream idle timeout: %v", s.StreamIdleTimeout)
 	}
 
-	if s.MinTransferRate < 0 {
-		return fmt.Errorf("invalid min transfer rate: %d", s.MinTransferRate)
-	}
-
-	if s.MinTransferWindow < 0 {
-		return fmt.Errorf("invalid min transfer window: %v", s.MinTransferWindow)
-	}
-
 	return nil
 }
 

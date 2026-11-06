@@ -128,11 +128,7 @@ func main() {
 
 	// Apply middleware stack (order matters!)
 
-	router.Use(middleware.StreamDeadlines(middleware.StreamConfig{
-		IdleTimeout:   cfg.Server.StreamIdleTimeout,
-		MinRate:       cfg.Server.MinTransferRate,
-		MinRateWindow: cfg.Server.MinTransferWindow,
-	}, logger))
+	router.Use(middleware.StreamDeadlines(cfg.Server.StreamIdleTimeout))
 
 	// 1. Request ID - must be first to ensure all logs have request ID
 	router.Use(middleware.RequestID)
@@ -347,8 +343,6 @@ func main() {
 		Dur("write_timeout", cfg.Server.WriteTimeout).
 		Dur("idle_timeout", cfg.Server.IdleTimeout).
 		Dur("stream_idle_timeout", cfg.Server.StreamIdleTimeout).
-		Int64("min_transfer_rate", cfg.Server.MinTransferRate).
-		Dur("min_transfer_window", cfg.Server.MinTransferWindow).
 		Int("max_header_bytes", cfg.Server.MaxHeaderBytes).
 		Msg("HTTP server configuration")
 

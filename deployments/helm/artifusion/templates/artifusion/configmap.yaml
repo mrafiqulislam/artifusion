@@ -14,12 +14,6 @@ data:
       {{- with .Values.artifusion.config.server.stream_idle_timeout }}
       stream_idle_timeout: {{ . }}
       {{- end }}
-      {{- if hasKey .Values.artifusion.config.server "min_transfer_rate" }}
-      min_transfer_rate: {{ .Values.artifusion.config.server.min_transfer_rate | int64 }}
-      {{- end }}
-      {{- with .Values.artifusion.config.server.min_transfer_window }}
-      min_transfer_window: {{ . }}
-      {{- end }}
       max_concurrent_requests: {{ .Values.artifusion.config.server.max_concurrent_requests }}
 
     github:

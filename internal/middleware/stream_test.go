@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -11,8 +10,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/rs/zerolog"
 )
 
 func startServer(t *testing.T, handler http.Handler, readTimeout, writeTimeout time.Duration) *httptest.Server {
@@ -44,7 +41,7 @@ func slowDownloadHandler(chunks int, chunkSize int, interval time.Duration) http
 
 func TestStreamDeadlines_ActiveDownloadOutlivesWriteTimeout(t *testing.T) {
 	const chunks, chunkSize = 15, 16 * 1024
-	cfg := StreamConfig{IdleTimeout: time.Second}
+	idle := time.Second
 
 	tests := []struct {
 		name     string
@@ -59,7 +56,7 @@ func TestStreamDeadlines_ActiveDownloadOutlivesWriteTimeout(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var handler = slowDownloadHandler(chunks, chunkSize, 100*time.Millisecond)
 			if tt.wrap {
-				handler = StreamDeadlines(cfg, zerolog.Nop())(handler)
+				handler = StreamDeadlines(idle)(handler)
 			}
 			srv := startServer(t, handler, 10*time.Second, 500*time.Millisecond)
 
@@ -81,7 +78,7 @@ func TestStreamDeadlines_ActiveDownloadOutlivesWriteTimeout(t *testing.T) {
 func TestStreamDeadlines_StalledClientIsCut(t *testing.T) {
 	writeErr := make(chan error, 1)
 	chunk := bytes.Repeat([]byte("x"), 64*1024)
-	handler := StreamDeadlines(StreamConfig{IdleTimeout: 300 * time.Millisecond}, zerolog.Nop())(
+	handler := StreamDeadlines(300 * time.Millisecond)(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			for i := 0; i < 4096; i++ {
 				if _, err := w.Write(chunk); err != nil {
@@ -112,50 +109,9 @@ func TestStreamDeadlines_StalledClientIsCut(t *testing.T) {
 	}
 }
 
-func TestStreamDeadlines_TooSlowTransferIsCut(t *testing.T) {
-	cfg := StreamConfig{IdleTimeout: time.Second, MinRate: 10_000, MinRateWindow: 300 * time.Millisecond}
-	writeErr := make(chan error, 1)
-	handler := StreamDeadlines(cfg, zerolog.Nop())(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for i := 0; i < 40; i++ {
-			if _, err := w.Write([]byte("0123456789")); err != nil {
-				writeErr <- err
-				return
-			}
-			time.Sleep(50 * time.Millisecond)
-		}
-		writeErr <- nil
-	}))
-
-	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
-
-	if err := <-writeErr; !errors.Is(err, ErrTransferTooSlow) {
-		t.Fatalf("got %v, want ErrTransferTooSlow", err)
-	}
-}
-
-func TestStreamDeadlines_FastTransferIsNotCut(t *testing.T) {
-	cfg := StreamConfig{IdleTimeout: time.Second, MinRate: 1_000, MinRateWindow: 100 * time.Millisecond}
-	handler := StreamDeadlines(cfg, zerolog.Nop())(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for i := 0; i < 20; i++ {
-			if _, err := w.Write(bytes.Repeat([]byte("x"), 1024)); err != nil {
-				t.Errorf("write %d failed: %v", i, err)
-				return
-			}
-			time.Sleep(20 * time.Millisecond)
-		}
-	}))
-
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-
-	if rec.Body.Len() != 20*1024 {
-		t.Fatalf("got %d bytes, want %d", rec.Body.Len(), 20*1024)
-	}
-}
-
 func TestStreamDeadlines_ActiveUploadOutlivesReadTimeout(t *testing.T) {
 	const chunks, chunkSize = 15, 1024
-	cfg := StreamConfig{IdleTimeout: time.Second}
+	idle := time.Second
 
 	tests := []struct {
 		name     string
@@ -174,7 +130,7 @@ func TestStreamDeadlines_ActiveUploadOutlivesReadTimeout(t *testing.T) {
 				received <- len(body)
 			})
 			if tt.wrap {
-				handler = StreamDeadlines(cfg, zerolog.Nop())(handler)
+				handler = StreamDeadlines(idle)(handler)
 			}
 			srv := startServer(t, handler, 500*time.Millisecond, 10*time.Second)
 

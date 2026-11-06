@@ -78,8 +78,6 @@ artifusion:
       read_timeout: 60s
       write_timeout: 300s
       stream_idle_timeout: 120s
-      min_transfer_rate: 1024
-      min_transfer_window: 10m
       max_concurrent_requests: 10000
 
     ## GitHub authentication configuration
